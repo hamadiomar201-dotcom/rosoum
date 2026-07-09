@@ -1,0 +1,6 @@
+{
+  "name": "سلعلي - Selaali",
+  "description": "منصة تجار الجملة الذكية وتصفح أحدث عروض البضائع وإدارة المتاجر",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

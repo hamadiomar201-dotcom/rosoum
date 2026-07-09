@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Wholesale product details offered by merchants",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "qty": { "type": "number" },
+        "store": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "minOrder": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "sellerId": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "qty", "store", "category", "unit", "minOrder", "sellerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile containing roles and preferences",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["merchant", "customer"] },
+        "store_name": { "type": "string" },
+        "business_type": { "type": "string" },
+        "store_logo": { "type": "string" },
+        "store_theme": { "type": "string" }
+      },
+      "required": ["name", "role", "store_name", "business_type", "store_logo", "store_theme"]
+    },
+    "OrderItem": {
+      "title": "OrderItem",
+      "description": "Single product purchased item outline",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productName": { "type": "string" },
+        "price": { "type": "number" },
+        "quantity": { "type": "number" },
+        "store": { "type": "string" }
+      },
+      "required": ["id", "productName", "price", "quantity", "store"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Wholesale deal and purchase order transaction with delivery and payment selections",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "type": "object", "$ref": "OrderItem" }
+        },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "completed", "declined"] },
+        "date": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "delivery_type": { "type": "string" },
+        "payment_method": { "type": "string" },
+        "remarks": { "type": "string" }
+      },
+      "required": ["id", "buyerName", "buyerId", "sellerId", "items", "totalPrice", "status", "date", "phone", "address", "delivery_type", "payment_method"]
+    },
+    "AdBanner": {
+      "title": "AdBanner",
+      "description": "Wholesale promotional advertisement created by merchants",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "store_name": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "linkProductId": { "type": "string" }
+      },
+      "required": ["id", "title", "description", "imageUrl", "store_name", "sellerId"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Real-time communication message between buyer and merchant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "chatId", "senderId", "senderName", "senderRole", "receiverId", "text", "timestamp"]
+    },
+    "Folder": {
+      "title": "Folder",
+      "description": "Folders created by user to organize files",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "createdAt"]
+    },
+    "FileMetadata": {
+      "title": "FileMetadata",
+      "description": "Metadata for files uploaded by user, persisted locally or in Cloud Storage",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "folderId": { "type": "string" },
+        "size": { "type": "number" },
+        "type": { "type": "string" },
+        "storagePath": { "type": "string" },
+        "downloadURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "size", "type", "storagePath", "downloadURL", "createdAt"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "Text notes created by user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "createdAt"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Store team members managed by the merchant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles containing role configurations"
+    },
+    "products/{productId}": {
+      "schema": "Product",
+      "description": "All wholesale products uploaded and managed by merchants"
+    },
+    "orders/{orderId}": {
+      "schema": "Order",
+      "description": "Wholesale booking orders submitted by buyers"
+    },
+    "banners/{bannerId}": {
+      "schema": "AdBanner",
+      "description": "All active visual ads/promotions posted by merchants"
+    },
+    "messages/{messageId}": {
+      "schema": "Message",
+      "description": "All instant messages exchanged between merchants and customers"
+    },
+    "users/{userId}/folders/{folderId}": {
+      "schema": "Folder",
+      "description": "Folders created by user to organize files"
+    },
+    "users/{userId}/files/{fileId}": {
+      "schema": "FileMetadata",
+      "description": "Metadata for files uploaded by user"
+    },
+    "users/{userId}/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Text notes created by user"
+    },
+    "users/{userId}/teamMembers/{memberId}": {
+      "schema": "TeamMember",
+      "description": "Team members managed by the merchant"
+    }
+  }
+}

@@ -1,0 +1,193 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// server.ts
+var import_express = __toESM(require("express"), 1);
+var import_path = __toESM(require("path"), 1);
+var import_dotenv = __toESM(require("dotenv"), 1);
+var import_vite = require("vite");
+var import_genai = require("@google/genai");
+import_dotenv.default.config();
+var app = (0, import_express.default)();
+var PORT = 3e3;
+app.use(import_express.default.json({ limit: "5mb" }));
+var ai = null;
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("GEMINI_API_KEY environment variable is not defined");
+    return null;
+  }
+  if (!ai) {
+    ai = new import_genai.GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build"
+        }
+      }
+    });
+  }
+  return ai;
+}
+function generateStyledPlaceholderSvgData(prompt, category) {
+  const cat = category || "Product";
+  const colors = [
+    { bg: "#1abc9c", text: "#ffffff" },
+    { bg: "#2ecc71", text: "#ffffff" },
+    { bg: "#3498db", text: "#ffffff" },
+    { bg: "#9b59b6", text: "#ffffff" },
+    { bg: "#e67e22", text: "#ffffff" },
+    { bg: "#e74c3c", text: "#ffffff" },
+    { bg: "#16a085", text: "#ffffff" },
+    { bg: "#27ae60", text: "#ffffff" }
+  ];
+  let hash = 0;
+  for (let i = 0; i < prompt.length; i++) {
+    hash = prompt.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const color = colors[Math.abs(hash) % colors.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <rect width="100%" height="100%" fill="${color.bg}" />
+    <defs>
+      <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15" />
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.2" />
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)" />
+    <circle cx="200" cy="180" r="80" fill="#ffffff" fill-opacity="0.15" />
+    <!-- Symbolic display text representing the category or initial -->
+    <text x="200" y="195" font-family="'Inter', sans-serif" font-weight="900" font-size="64" fill="${color.text}" fill-opacity="0.9" text-anchor="middle">
+      ${prompt.slice(0, 2).toUpperCase()}
+    </text>
+    <!-- Descriptive Name at bottom -->
+    <rect x="0" y="320" width="100%" height="80" fill="#000000" fill-opacity="0.25" />
+    <text x="200" y="355" font-family="'Inter', sans-serif" font-weight="700" font-size="16" fill="${color.text}" text-anchor="middle">
+      ${prompt.length > 25 ? prompt.slice(0, 22) + "..." : prompt}
+    </text>
+    <text x="200" y="380" font-family="'Inter', sans-serif" font-weight="500" font-size="12" fill="${color.text}" fill-opacity="0.7" text-anchor="middle">
+      ${cat.toUpperCase()} / premium wholesale batch
+    </text>
+  </svg>`;
+  const base64 = Buffer.from(svg).toString("base64");
+  return `data:image/svg+xml;base64,${base64}`;
+}
+app.post("/api/generate-image", async (req, res) => {
+  const { prompt, category } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ error: "Product name/prompt is required" });
+  }
+  console.log(`Generating unique B2B product showcase placeholder for: "${prompt}" in Category: "${category || "N/A"}"`);
+  const client = getGeminiClient();
+  if (!client) {
+    console.info("Gemini client not initialized (missing API key). Falling back to visual vector placeholder.");
+    const fallbackUrl = generateStyledPlaceholderSvgData(prompt, category);
+    return res.json({
+      success: true,
+      imageUrl: fallbackUrl,
+      isPlaceholderFallback: true,
+      message: "Generated custom styled graphic vector symbol (AI key missing)"
+    });
+  }
+  try {
+    console.log("Calling Imagen model: 'imagen-4.0-generate-001'...");
+    const response = await client.models.generateImages({
+      model: "imagen-4.0-generate-001",
+      prompt: `A professional commercial catalog photograph of ${prompt}, high quality, crisp commercial shoot, isolated on clean ambient background, suitable for B2B portal listings`,
+      config: {
+        numberOfImages: 1,
+        outputMimeType: "image/jpeg",
+        aspectRatio: "1:1"
+      }
+    });
+    if (response?.generatedImages?.[0]?.image?.imageBytes) {
+      const base64Bytes = response.generatedImages[0].image.imageBytes;
+      const imageUrl = `data:image/jpeg;base64,${base64Bytes}`;
+      return res.json({
+        success: true,
+        imageUrl,
+        isPlaceholderFallback: false
+      });
+    } else {
+      throw new Error("No image data returned from Imagen model response.");
+    }
+  } catch (error) {
+    console.error("AI Image Generation failed. Error detail:", error);
+    try {
+      console.log("Attempting second-tier fallback with gemini-2.5-flash-image generateContent...");
+      const response = await client.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: `A high quality, professional studio product catalog photograph of "${prompt}" in the category of "${category || "general commerce"}". Crisp lighting, photorealistic. Output an image.`,
+        config: {
+          imageConfig: {
+            aspectRatio: "1:1"
+          }
+        }
+      });
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) {
+          const base64 = part.inlineData.data;
+          const imageUrl = `data:image/png;base64,${base64}`;
+          return res.json({
+            success: true,
+            imageUrl,
+            isPlaceholderFallback: false,
+            alternativeModelUsed: true
+          });
+        }
+      }
+    } catch (innerError) {
+      console.error("Second-tier AI Image Generation also failed:", innerError);
+    }
+    const fallbackUrl = generateStyledPlaceholderSvgData(prompt, category);
+    return res.json({
+      success: true,
+      imageUrl: fallbackUrl,
+      isPlaceholderFallback: true,
+      errorInfo: error.message || error,
+      message: "Fallback graphic generated gracefully due to upstream API exception"
+    });
+  }
+});
+async function startServer() {
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await (0, import_vite.createServer)({
+      server: { middlewareMode: true },
+      appType: "spa"
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = import_path.default.join(process.cwd(), "dist");
+    app.use(import_express.default.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(import_path.default.join(distPath, "index.html"));
+    });
+  }
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+startServer();
+//# sourceMappingURL=server.cjs.map
